@@ -1,0 +1,50 @@
+name: QTV Twitter Bot
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'  # Запуск каждые 5 минут
+  workflow_dispatch:        # Ручной запуск
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10     # Максимальное время выполнения
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        cd src
+        pip install -r requirements.txt
+
+    - name: Create credentials file
+      run: |
+        cd src
+        echo '${{ secrets.GOOGLE_CREDENTIALS }}' > credentials.json
+
+    - name: Run Twitter Bot
+      env:
+        TWITTER_BEARER_TOKEN: ${{ secrets.TWITTER_BEARER_TOKEN }}
+        TWITTER_API_KEY: ${{ secrets.TWITTER_API_KEY }}
+        TWITTER_API_SECRET: ${{ secrets.TWITTER_API_SECRET }}
+        TWITTER_ACCESS_TOKEN: ${{ secrets.TWITTER_ACCESS_TOKEN }}
+        TWITTER_ACCESS_SECRET: ${{ secrets.TWITTER_ACCESS_SECRET }}
+        SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
+        TARGET_TWEET_ID: ${{ secrets.TARGET_TWEET_ID }}
+      run: |
+        cd src
+        python qtv_bot.py
+
+    - name: Upload logs
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: bot-logs
+        path: src/*.log
