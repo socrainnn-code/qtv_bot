@@ -8,7 +8,7 @@ on:
 jobs:
   run-bot:
     runs-on: ubuntu-latest
-    timeout-minutes: 10     # Максимальное время выполнения
+    timeout-minutes: 10
     
     steps:
     - name: Checkout code
@@ -24,10 +24,12 @@ jobs:
         cd src
         pip install -r requirements.txt
 
-    - name: Create credentials file
+    - name: Create Google credentials file
       run: |
         cd src
         echo '${{ secrets.GOOGLE_CREDENTIALS }}' > credentials.json
+        # Проверяем что файл создался
+        ls -la credentials.json
 
     - name: Run Twitter Bot
       env:
@@ -40,11 +42,26 @@ jobs:
         TARGET_TWEET_ID: ${{ secrets.TARGET_TWEET_ID }}
       run: |
         cd src
+        python -c "
+        import os
+        print('Environment variables:')
+        for key in ['TWITTER_BEARER_TOKEN', 'SPREADSHEET_ID', 'TARGET_TWEET_ID']:
+            value = os.getenv(key)
+            print(f'{key}: {value[:10] + \"...\" if value and len(value) > 10 else value}')
+        "
         python qtv_bot.py
 
-    - name: Upload logs
+    - name: Upload logs artifact
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
-        name: bot-logs
+        name: bot-logs-${{ github.run_id }}
         path: src/*.log
+        retention-days: 7
+
+    - name: Show final status
+      if: always()
+      run: |
+        echo "Workflow completed with status: ${{ job.status }}"
+        echo "Run ID: ${{ github.run_id }}"
+        echo "See logs in Artifacts section"
