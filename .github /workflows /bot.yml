@@ -1,5 +1,13 @@
 name: QTV Twitter Bot
 
+- name: Debug environment
+  run: |
+    echo "🔍 Debug info:"
+    echo "PWD: $(pwd)"
+    echo "LS: $(ls -la)"
+    echo "SRC LS: $(ls -la src/)"
+    echo "Python version: $(python --version)"
+
 on:
   schedule:
     - cron: '*/5 * * * *'  # Каждые 5 минут
