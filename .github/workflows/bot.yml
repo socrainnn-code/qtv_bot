@@ -1,15 +1,10 @@
-name: QTV Twitter Bot
+name: Debug Google Auth
 
-on:
-  schedule:
-    - cron: '*/5 * * * *'  # Каждые 5 минут
-  workflow_dispatch:        # Ручной запуск
+on: [workflow_dispatch]
 
 jobs:
-  run-bot:
+  debug:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-    
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -20,50 +15,38 @@ jobs:
         python-version: '3.11'
 
     - name: Install dependencies
-      run: |
-        pip install -r requirements.txt
+      run: pip install PyJWT cryptography
 
-    - name: Create Google credentials from secrets
+    - name: Create and validate credentials
       run: |
-        # Создаем credentials.json из секрета
-        echo '${{ secrets.GOOGLE_CREDENTIALS }}' > credentials.json
+        echo "${{ secrets.GOOGLE_CREDENTIALS }}" > credentials.json
         
-        # Проверяем что файл создан и валиден
-        if [ -f "credentials.json" ]; then
-          echo "✅ credentials.json created successfully"
-          echo "File size: $(wc -c < credentials.json) bytes"
-        else
-          echo "❌ Failed to create credentials.json"
-          exit 1
-        fi
-        
-        # Проверяем что это валидный JSON
-        if python -c "import json; json.load(open('credentials.json'))"; then
-          echo "✅ credentials.json contains valid JSON"
-        else
-          echo "❌ credentials.json contains invalid JSON"
-          exit 1
-        fi
+        echo "🔍 Analyzing credentials.json..."
+        python -c "
+import json
+import os
 
-    - name: Run Twitter Bot
+try:
+    with open('credentials.json', 'r') as f:
+        data = json.load(f)
+    
+    print('✅ JSON is valid')
+    print(f'Type: {data.get(\"type\")}')
+    print(f'Project ID: {data.get(\"project_id\")}')
+    print(f'Client email: {data.get(\"client_email\")}')
+    print(f'Private key ID: {data.get(\"private_key_id\")}')
+    print(f'Private key length: {len(data.get(\"private_key\", \"\"))} characters')
+    
+    # Проверяем формат private key
+    pk = data.get('private_key', '')
+    if pk.startswith('-----BEGIN PRIVATE KEY-----'):
+        print('✅ Private key format: CORRECT')
+    else:
+        print('❌ Private key format: INCORRECT')
+        
+except Exception as e:
+    print(f'❌ Error: {e}')
+    exit(1)
+        "
       env:
-        TWITTER_BEARER_TOKEN: ${{ secrets.TWITTER_BEARER_TOKEN }}
-        SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
-        TARGET_TWEET_ID: ${{ secrets.TARGET_TWEET_ID }}
-      run: |
-        echo "🚀 Starting QTV Bot..."
-        python qtv_bot.py
-
-    - name: Clean up credentials
-      if: always()
-      run: |
-        # Удаляем credentials файл после использования
-        if [ -f "credentials.json" ]; then
-          rm credentials.json
-          echo "✅ credentials.json removed"
-        fi
-
-    - name: Show completion status
-      if: always()
-      run: |
-        echo "✅ Workflow completed: ${{ job.status }}"
+        GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
