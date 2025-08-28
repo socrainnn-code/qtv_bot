@@ -1,0 +1,53 @@
+
+name: Debug Google Auth
+
+on: [workflow_dispatch]
+
+jobs:
+  debug:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: pip install PyJWT cryptography
+
+    - name: Create and validate credentials
+      run: |
+        echo "${{ secrets.GOOGLE_CREDENTIALS }}" > credentials.json
+        
+        echo "🔍 Analyzing credentials.json..."
+        python -c "
+import json
+import os
+
+try:
+    with open('credentials.json', 'r') as f:
+        data = json.load(f)
+    
+    print('✅ JSON is valid')
+    print(f'Type: {data.get(\"type\")}')
+    print(f'Project ID: {data.get(\"project_id\")}')
+    print(f'Client email: {data.get(\"client_email\")}')
+    print(f'Private key ID: {data.get(\"private_key_id\")}')
+    print(f'Private key length: {len(data.get(\"private_key\", \"\"))} characters')
+    
+    # Проверяем формат private key
+    pk = data.get('private_key', '')
+    if pk.startswith('-----BEGIN PRIVATE KEY-----'):
+        print('✅ Private key format: CORRECT')
+    else:
+        print('❌ Private key format: INCORRECT')
+        
+except Exception as e:
+    print(f'❌ Error: {e}')
+    exit(1)
+        "
+      env:
+        GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
