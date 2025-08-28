@@ -23,10 +23,27 @@ jobs:
       run: |
         pip install -r requirements.txt
 
-    - name: Create Google credentials file
+    - name: Create Google credentials from secrets
       run: |
+        # Создаем credentials.json из секрета
         echo '${{ secrets.GOOGLE_CREDENTIALS }}' > credentials.json
-        echo "✅ Google credentials file created"
+        
+        # Проверяем что файл создан и валиден
+        if [ -f "credentials.json" ]; then
+          echo "✅ credentials.json created successfully"
+          echo "File size: $(wc -c < credentials.json) bytes"
+        else
+          echo "❌ Failed to create credentials.json"
+          exit 1
+        fi
+        
+        # Проверяем что это валидный JSON
+        if python -c "import json; json.load(open('credentials.json'))"; then
+          echo "✅ credentials.json contains valid JSON"
+        else
+          echo "❌ credentials.json contains invalid JSON"
+          exit 1
+        fi
 
     - name: Run Twitter Bot
       env:
@@ -35,34 +52,18 @@ jobs:
         TARGET_TWEET_ID: ${{ secrets.TARGET_TWEET_ID }}
       run: |
         echo "🚀 Starting QTV Bot..."
-        start_time=$(date +%s)
         python qtv_bot.py
-        exit_code=$?
-        end_time=$(date +%s)
-        echo "⏱ Execution time: $((end_time - start_time)) seconds"
-        echo "🔚 Exit code: $exit_code"
-        exit $exit_code
 
-    - name: Send success notification
-      if: success()
-      uses: actions/github-script@v6
-      with:
-        script: |
-          github.rest.issues.createComment({
-            issue_number: context.issue.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            body: '✅ QTV Bot выполнен успешно! Проверьте Google Sheets для обновлений.'
-          })
+    - name: Clean up credentials
+      if: always()
+      run: |
+        # Удаляем credentials файл после использования
+        if [ -f "credentials.json" ]; then
+          rm credentials.json
+          echo "✅ credentials.json removed"
+        fi
 
-    - name: Send failure notification
-      if: failure()
-      uses: actions/github-script@v6
-      with:
-        script: |
-          github.rest.issues.createComment({
-            issue_number: context.issue.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            body: '❌ QTV Bot завершился с ошибкой! Проверьте логи workflow.'
-          })
+    - name: Show completion status
+      if: always()
+      run: |
+        echo "✅ Workflow completed: ${{ job.status }}"
