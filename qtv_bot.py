@@ -1,11 +1,10 @@
 import tweepy
 import gspread
 from google.oauth2 import service_account
-from datetime import datetime, timedelta
+from datetime import datetime
 import os
 import logging
 import json
-import jwt  # Добавляем для проверки JWT
 
 # Настройка логирования
 logging.basicConfig(
@@ -15,108 +14,42 @@ logging.basicConfig(
 )
 logger = logging.getLogger('QTVBot')
 
-def validate_jwt_token(private_key, client_email):
-    """Проверяет валидность JWT токена"""
+def get_tweet_likes(client, tweet_id):
+    """Правильное получение количества лайков твита"""
     try:
-        # Пробуем создать JWT токен
-        now = datetime.utcnow()
-        payload = {
-            'iss': client_email,
-            'scope': 'https://www.googleapis.com/auth/spreadsheets',
-            'aud': 'https://oauth2.googleapis.com/token',
-            'exp': now + timedelta(hours=1),
-            'iat': now
-        }
-        
-        # Пробуем подписать токен
-        signed_jwt = jwt.encode(payload, private_key, algorithm='RS256')
-        logger.info("✅ JWT token validation successful")
-        return True
-        
-    except jwt.InvalidKeyError as e:
-        logger.error(f"❌ Invalid private key: {e}")
-        return False
+        tweet = client.get_tweet(tweet_id, tweet_fields=['public_metrics'])
+        if tweet and tweet.data:
+            return tweet.data.public_metrics.get('like_count', 0)
+        return 0
     except Exception as e:
-        logger.error(f"❌ JWT validation error: {e}")
-        return False
+        logger.error(f"❌ Error getting tweet likes: {e}")
+        return None
 
-def check_credentials_file():
-    """Проверяет credentials.json перед использованием"""
+def initialize_google_sheets():
+    """Инициализация Google Sheets"""
     try:
         if not os.path.exists('credentials.json'):
             logger.error("❌ credentials.json file not found")
-            return False
+            return None
         
-        with open('credentials.json', 'r') as f:
-            creds_data = json.load(f)
-        
-        # Проверяем обязательные поля
-        required_fields = ['type', 'project_id', 'private_key', 'client_email', 'private_key_id']
-        for field in required_fields:
-            if field not in creds_data:
-                logger.error(f"❌ Missing field in credentials: {field}")
-                return False
-        
-        # Проверяем что private_key имеет правильный формат
-        private_key = creds_data['private_key']
-        if not private_key.startswith('-----BEGIN PRIVATE KEY-----'):
-            logger.error("❌ Private key has invalid format")
-            return False
-        
-        # Валидируем JWT токен
-        if not validate_jwt_token(private_key, creds_data['client_email']):
-            return False
-        
-        logger.info(f"✅ credentials.json valid for: {creds_data['client_email']}")
-        return True
-        
-    except json.JSONDecodeError:
-        logger.error("❌ credentials.json contains invalid JSON")
-        return False
-    except Exception as e:
-        logger.error(f"❌ Error validating credentials: {e}")
-        return False
-
-def initialize_google_sheets():
-    """Инициализация Google Sheets с улучшенной обработкой ошибок"""
-    if not check_credentials_file():
-        return None
-    
-    try:
-        # Загружаем credentials
         credentials = service_account.Credentials.from_service_account_file(
             'credentials.json',
             scopes=['https://www.googleapis.com/auth/spreadsheets']
         )
         
-        # Создаем клиент с таймаутами
-        gc = gspread.Client(credentials)
-        gc.session.timeout = 30
+        gc = gspread.authorize(credentials)
         
         spreadsheet_id = os.getenv('SPREADSHEET_ID')
         if not spreadsheet_id:
-            logger.error("❌ SPREADSHEET_ID not set")
+            logger.error("❌ SPREADSHEET_ID environment variable not set")
             return None
         
-        # Пробуем открыть таблицу
         spreadsheet = gc.open_by_key(spreadsheet_id)
         sheet = spreadsheet.sheet1
-        
-        # Тестируем соединение простым запросом
-        sheet.get('A1')
         
         logger.info("✅ Google Sheets initialized successfully")
         return sheet
         
-    except gspread.SpreadsheetNotFound:
-        logger.error("❌ Spreadsheet not found. Check SPREADSHEET_ID and sharing permissions")
-        return None
-    except gspread.NoValidUrlKeyFound:
-        logger.error("❌ Invalid spreadsheet ID format")
-        return None
-    except gspread.APIError as e:
-        logger.error(f"❌ Google API error: {e}")
-        return None
     except Exception as e:
         logger.error(f"❌ Failed to initialize Google Sheets: {e}")
         return None
@@ -134,7 +67,40 @@ def main():
     # Инициализируем Google Sheets
     sheet = initialize_google_sheets()
     if not sheet:
-        logger.error("❌ Failed to initialize Google Sheets. Check credentials and spreadsheet sharing.")
+        logger.error("❌ Failed to initialize Google Sheets")
         return
     
-    # Остальная логика бота...
+    # Инициализируем Twitter клиент
+    try:
+        client = tweepy.Client(bearer_token=os.getenv('TWITTER_BEARER_TOKEN'))
+        logger.info("✅ Twitter client initialized")
+    except Exception as e:
+        logger.error(f"❌ Failed to initialize Twitter client: {e}")
+        return
+    
+    # Получаем количество лайков ПРАВИЛЬНЫМ методом
+    tweet_id = os.getenv('TARGET_TWEET_ID')
+    like_count = get_tweet_likes(client, tweet_id)
+    
+    if like_count is None:
+        logger.error("❌ Failed to get tweet likes")
+        return
+    
+    logger.info(f"❤️ Current likes: {like_count}")
+    
+    # Обновляем Google Sheets
+    try:
+        current_time = str(datetime.now())
+        sheet.update('A2', [[like_count]])
+        sheet.update('B2', [[current_time]])
+        
+        logger.info(f"📊 Updated Google Sheets with {like_count} likes")
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to update Google Sheets: {e}")
+        return
+    
+    logger.info("✅ QTV Bot completed successfully")
+
+if __name__ == "__main__":
+    main()
