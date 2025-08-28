@@ -82,9 +82,15 @@ def initialize_google_sheets():
         spreadsheet = gc.open_by_key(spreadsheet_id)
         sheet = spreadsheet.sheet1
         
-        # Проверяем доступ чтением первой ячейки
-        test_value = sheet.acell('A1').value
-        logger.info(f"✅ Google Sheets access confirmed. A1 value: '{test_value}'")
+        # Инициализируем заголовки если лист пустой
+        try:
+            current_data = sheet.get_all_values()
+            if len(current_data) < 2:
+                headers = [['Current_Likes', 'Last_Checkpoint', 'Target_Goal', 'Last_Updated', 'Status']]
+                sheet.update('A1:E1', headers)
+                logger.info("✅ Created headers in Google Sheets")
+        except:
+            logger.warning("⚠️ Could not check/initialize headers")
         
         return sheet
         
@@ -93,19 +99,16 @@ def initialize_google_sheets():
         return None
 
 def update_google_sheets(sheet, likes_count, last_checkpoint, status="Active"):
-    """Обновление Google Sheets с отслеживанием контрольных точек"""
+    """Обновление Google Sheets с правильным форматом данных"""
     try:
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
-        # Обновляем данные
+        # ПРАВИЛЬНЫЙ формат: один список для одной строки
         update_data = [
-            [likes_count],          # A2 - Текущие лайки
-            [last_checkpoint],      # B2 - Последняя контрольная точка
-            [TARGET_GOAL],          # C2 - Целевое значение
-            [current_time],         # D2 - Время обновления
-            [status]                # E2 - Статус
+            [likes_count, last_checkpoint, TARGET_GOAL, current_time, status]
         ]
         
+        # Обновляем строку 2 (A2:E2)
         sheet.update('A2:E2', update_data)
         logger.info(f"📈 Updated Google Sheets: {likes_count} likes")
         return True
@@ -179,7 +182,7 @@ def load_last_checkpoint(sheet):
     try:
         # Читаем значение из ячейки B2
         checkpoint_value = sheet.acell('B2').value
-        if checkpoint_value and checkpoint_value.isdigit():
+        if checkpoint_value and str(checkpoint_value).isdigit():
             return int(checkpoint_value)
         return 0
     except Exception as e:
