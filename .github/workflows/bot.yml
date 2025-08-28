@@ -37,32 +37,10 @@ jobs:
         TARGET_TWEET_ID: ${{ secrets.TARGET_TWEET_ID }}
       run: |
         cd src
-        echo "🔧 Environment check:"
-        echo "TWITTER_BEARER_TOKEN: ${TWITTER_BEARER_TOKEN:0:10}..."
-        echo "SPREADSHEET_ID: $SPREADSHEET_ID"
-        echo "TARGET_TWEET_ID: $TARGET_TWEET_ID"
-        
         echo "🚀 Starting QTV Bot..."
         python qtv_bot.py
 
-    - name: List files after bot run
-      run: |
-        echo "📁 Files in workspace:"
-        find . -name "*.log" -o -name "*.txt" | head -10
-
-    - name: Upload logs if they exist
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: bot-logs-${{ github.run_number }}
-        path: |
-          src/*.log
-          *.log
-        if-no-files-found: ignore
-        retention-days: 3
-
-    - name: Show workflow status
+    - name: Show completion status
       if: always()
       run: |
-        echo "📊 Workflow status: ${{ job.status }}"
-        echo "🔢 Run number: ${{ github.run_number }}"
+        echo "✅ Workflow completed: ${{ job.status }}"
