@@ -122,26 +122,26 @@ def post_milestone_tweet(client, tweet_id, current_likes, milestone):
     try:
         # Выбираем сообщение в зависимости от milestone
         if milestone == 100:
-            message = f"🎉 Первые 100 лайков! Спасибо за доверие к эксперименту! 🙏\n\nТекущий прогресс: {current_likes}/{TARGET_GOAL} 👁️⚡️\n#QTV #QuestToVision"
+            message = f"🎉 The first 100 likes! Thank you for trusting the experiment! 🙏\n\nCurrent progress: {current_likes}/{TARGET_GOAL} 👁️⚡️\n#QTV #QuestToVision"
         elif milestone == 500:
-            message = f"🔥 500 лайков! Сообщество растет не по дням, а по часам! 🌱\n\nТекущий прогресс: {current_likes}/{TARGET_GOAL} 👁️⚡️\n#QTV #QuestToVision"
+            message = f"🔥 500 likes! The community is growing by leaps and bounds! 🌱\n\nCurrent progress: {current_likes}/{TARGET_GOAL} 👁️⚡️\n#QTV #QuestToVision"
         elif milestone == 1000:
-            message = f"⚡ 1000 лайков! Алгоритмы Twitter начали нас замечать! 📊\n\nТекущий прогресс: {current_likes}/{TARGET_GOAL} 👁️⚡️\n#QTV #QuestToVision"
+            message = f"⚡ 1000 likes! Twitter algorithms are starting to notice us! 📊\n\nCurrent progress: {current_likes}/{TARGET_GOAL} 👁️⚡️\n#QTV #QuestToVision"
         elif milestone == 5000:
-            message = f"🌟 5000 лайков! Мы на полпути к разгадке тайны! 🎯\n\nТекущий прогресс: {current_likes}/{TARGET_GOAL} 👁️⚡️\n#QTV #QuestToVision"
+            message = f"🌟 5000 likes! We're halfway to solving the mystery! 🎯\n\Current progress: {current_likes}/{TARGET_GOAL} 👁️⚡️\n#QTV #QuestToVision"
         elif milestone == 10000:
-            message = f"💫 10,000 лайков! Сила коллективного разума впечатляет! 🧠\n\nТекущий прогресс: {current_likes}/{TARGET_GOAL} 👁️⚡️\n#QTV #QuestToVision"
+            message = f"💫 10,000 likes! The power of the collective mind is impressive! 🧠\n\nCurrent progress: {current_likes}/{TARGET_GOAL} 👁️⚡️\n#QTV #QuestToVision"
         elif milestone == 25000:
-            message = f"🚀 25,000 лайков! Виральный эффект набирает обороты! 🌪️\n\nТекущий прогресс: {current_likes}/{TARGET_GOAL} 👁️⚡️\n#QTV #QuestToVision"
+            message = f"🚀 25,000 likes! The viral effect is gaining momentum! 🌪️\n\nCurrent progress: {current_likes}/{TARGET_GOAL} 👁️⚡️\n#QTV #QuestToVision"
         elif milestone == 50000:
-            message = f"🎯 50,000 лайков! Половина пути пройдена блестяще! ✨\n\nТекущий прогресс: {current_likes}/{TARGET_GOAL} 👁️⚡️\n#QTV #QuestToVision"
+            message = f"🎯 50,000 likes! Half the way there! ✨\n\nCurrent progress: {current_likes}/{TARGET_GOAL} 👁️⚡️\n#QTV #QuestToVision"
         elif milestone == 75000:
-            message = f"🔥 75,000 лайков! Финал уже близко, осталось совсем немного! ⏳\n\nТекущий прогресс: {current_likes}/{TARGET_GOAL} 👁️⚡️\n#QTV #QuestToVision"
+            message = f"🔥 75,000 likes! The finals are almost here, just a little bit more! ⏳\n\nCurrent progress: {current_likes}/{TARGET_GOAL} 👁️⚡️\n#QTV #QuestToVision"
         elif milestone == 100000:
-            message = f"🏆 100,000 ЛАЙКОВ ДОСТИГНУТО! Тайна раскрыта! 🎊\n\nСпасибо каждому, кто участвовал в этом путешествии! 🙌\n#QTV #QuestToVision #Победа"
+            message = f"🏆 100,000 LIKES ACHIEVED! The mystery is solved! 🎊\n\nThank you to everyone who participated in this journey! 🙌\n#QTV #QuestToVision #Win"
         else:
             progress_percent = (current_likes / TARGET_GOAL) * 100
-            message = f"🚀 Прогресс: {current_likes}/{TARGET_GOAL} ({progress_percent:.1f}%)\n\nДостигнута новая веха! Продолжаем в том же духе! 👁️⚡️\n#QTV #QuestToVision"
+            message = f"🚀 Progress: {current_likes}/{TARGET_GOAL} ({progress_percent:.1f}%)\n\nA new milestone has been reached! Keep up the good work! 👁️⚡️\n#QTV #QuestToVision"
         
         # Публикуем твит как ответ на основной твит
         response = client.create_tweet(
